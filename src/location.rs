@@ -53,3 +53,19 @@ impl ToString for Location {
         }
     }
 }
+
+impl Location {
+    pub fn start_to_end(&mut self) {
+        self.line_start = self.line_end;
+        self.column_start = self.column_end;
+    }
+
+    pub fn step_line(&mut self) {
+        self.line_end += 1;
+        self.column_end = 0;
+    }
+
+    pub fn step_column(&mut self) {
+        self.column_end += 1;
+    }
+}
