@@ -1,0 +1,73 @@
+input = "OPENQASM", REAL, ";", program ;
+
+program = statement, { statement } ;
+
+statement =
+	decl
+	| gatedecl
+	| qop
+	| "if", "(", ID, "==", INTEGER, ")", qop
+	| "barrier", arglist, ";"
+	;
+
+decl =
+	"qreg", ID, "[", INTEGER, "]", ";"
+	| "creg", ID, "[", INTEGER, "]", ";"
+	;
+
+gatedecl =
+	"gate", ID, [ "(", [ idlist ], ")", ], idlist, "{", { gop }, "}"
+	| "opaque", ID, [ "(", [ idlist ], ")", ], idlist, ";"
+	;
+
+gop =
+	uop
+	| "barrier", idlist, ";"
+	;
+
+qop =
+	uop
+	| "measure", argument, "->", argument ";"
+	| "reset", argument, ";"
+	;
+
+uop =
+	"U", "(", explist, ")", argument, ";"
+	| "CX", argument, ",", argument, ";"
+	| ID, [ "(", [ explist ], ")", ], arglist, ";"
+	;
+
+argument =
+	ID
+	| ID, "[", INTEGER, "]"
+	;
+
+idlist = ID, { ",", id } ;
+
+arglist = argument, { ",", argument } ;
+
+explist = exp, { ",", exp } ;
+
+exp =
+	REAL
+	| INTEGER
+	| "pi"
+	| ID
+	| exp, "+", exp
+	| exp, "-", exp
+	| exp, "*", exp
+	| exp, "/", exp
+	| "-", exp
+	| exp, "^", exp
+	| "(", exp, ")"
+	| unaryop, "(", exp, ")"
+	;
+
+unaryop =
+	"sin"
+	| "cos"
+	| "tan"
+	| "exp"
+	| "ln"
+	| "sqrt"
+	;
