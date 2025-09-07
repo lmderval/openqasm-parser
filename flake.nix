@@ -17,27 +17,31 @@
       in
       {
         packages = {
-          openqasm-parser = pkgs.stdenv.mkDerivation {
+          openqasm-parser = pkgs.rustPlatform.buildRustPackage {
             pname = "openqasm-parser";
             version = "0.1.0";
             src = self;
 
-            buildInputs = with pkgs; [
-              rustc
-              cargo
-            ];
-
-            buildPhase = ''
-              cargo build --release
-            '';
-
-            installPhase = ''
-              mkdir -p $out/bin
-              cp target/release/openqasm-parser $out/bin/openqasm-parser
-            '';
+            cargoLock.lockFile = ./Cargo.lock;
           };
 
           default = self.packages.${system}.openqasm-parser;
+        };
+
+        devShells = {
+          openqasm-parser = pkgs.mkShell {
+            inputsFrom = [
+              self.packages.${system}.openqasm-parser
+            ];
+
+            buildInputs = with pkgs; [
+              rust-analyzer
+              rustfmt
+              clippy
+            ];
+          };
+
+          default = self.devShells.${system}.openqasm-parser;
         };
 
         formatter = pkgs.nixpkgs-fmt;
