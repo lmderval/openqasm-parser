@@ -1,0 +1,54 @@
+input = "OPENQASM", REAL, ";", program ;
+
+program = statement, { statement } ;
+
+statement =
+	decl
+	| qop
+	;
+
+decl =
+	"qreg", ID, "[", INTEGER, "]", ";"
+	| "creg", ID, "[", INTEGER, "]", ";"
+	;
+
+qop =
+	uop
+	| "measure", argument, "->", argument ";"
+	| "reset", argument, ";"
+	;
+
+uop =
+	"U", "(", explist, ")", argument, ";"
+	| "CX", argument, ",", argument, ";"
+	;
+
+argument =
+	ID
+	| ID, "[", INTEGER, "]"
+	;
+
+explist = exp, { ",", exp } ;
+
+exp =
+	REAL
+	| INTEGER
+	| "pi"
+	| exp, "+", exp
+	| exp, "-", exp
+	| exp, "*", exp
+	| exp, "/", exp
+	| "-", exp
+	| exp, "^", exp
+	| "(", exp, ")"
+	| unaryop, "(", exp, ")"
+	;
+
+unaryop =
+	"sin"
+	| "cos"
+	| "tan"
+	| "exp"
+	| "ln"
+	| "sqrt"
+	;
