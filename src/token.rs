@@ -47,9 +47,9 @@ impl ToString for TokenTy {
     fn to_string(&self) -> String {
         match self {
             TokenTy::OpenQASM => String::from("OPENQASM"),
-            TokenTy::Integer(n) => String::from("INTEGER(") + &n.to_string() + ")",
-            TokenTy::Real(x) => String::from("REAL(") + &x.to_string() + ")",
-            TokenTy::Id(s) => String::from("ID(") + &s + ")",
+            TokenTy::Integer(n) => format!("INTEGER({})", n),
+            TokenTy::Real(x) => format!("REAL({})", x),
+            TokenTy::Id(s) => format!("ID({})", s),
             TokenTy::QReg => String::from("QREG"),
             TokenTy::CReg => String::from("CREG"),
             TokenTy::UGate => String::from("UGATE"),
@@ -92,5 +92,11 @@ pub fn build_token(ty: TokenTy, loc: Location) -> Token {
 impl ToString for Token {
     fn to_string(&self) -> String {
         self.ty.to_string() + "@" + &self.loc.to_string()
+    }
+}
+
+impl Token {
+    pub fn get_ty(&self) -> &TokenTy {
+        &self.ty
     }
 }
