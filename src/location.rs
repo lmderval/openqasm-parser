@@ -54,6 +54,18 @@ impl ToString for Location {
     }
 }
 
+impl Clone for Location {
+    fn clone(&self) -> Location {
+        Location {
+            file: self.file.clone(),
+            line_start: self.line_start,
+            column_start: self.column_start,
+            line_end: self.line_end,
+            column_end: self.column_end,
+        }
+    }
+}
+
 impl Location {
     pub fn start_to_end(&mut self) {
         self.line_start = self.line_end;
@@ -67,5 +79,10 @@ impl Location {
 
     pub fn step_column(&mut self) {
         self.column_end += 1;
+    }
+
+    pub fn end_to_next(&mut self, next: &Location) {
+        self.line_end = next.line_start;
+        self.column_end = next.column_start;
     }
 }
