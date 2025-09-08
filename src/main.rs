@@ -1,5 +1,6 @@
 use std::io;
 
+pub mod ast;
 pub mod chars;
 pub mod lexer;
 pub mod location;
