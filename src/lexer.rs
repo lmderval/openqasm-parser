@@ -95,6 +95,32 @@ impl<Input: Read> Lexer<Input> {
         self.token = Some(token::build_token(ty, location));
     }
 
+    fn process_reserved_identifier(&mut self) {
+        let mut location = self.location.clone();
+        let mut id = String::from("");
+        while let Some(c) = self.next_char()
+            && chars::is_id(c)
+        {
+            id += &c.to_string();
+            self.reset_char();
+        }
+        if self.error.is_some() {
+            return;
+        }
+        if let Some(ty) = match id.as_str() {
+            "OPENQASM" => Some(TokenTy::OpenQASM),
+            "U" => Some(TokenTy::UGate),
+            "CX" => Some(TokenTy::CXGate),
+            _ => {
+                self.error = Some(Error::other(format!("Invalid identifier '{}'", id)));
+                None
+            }
+        } {
+            location.end_to_next(&self.location);
+            self.token = Some(token::build_token(ty, location));
+        }
+    }
+
     fn process(&mut self) {
         while let Some(c) = self.next_char()
             && chars::is_space(c)
@@ -107,6 +133,8 @@ impl<Input: Read> Lexer<Input> {
         if let Some(c) = self.next_char() {
             if chars::is_lower(c) {
                 self.process_identifier();
+            } else if chars::is_upper(c) {
+                self.process_reserved_identifier();
             } else {
                 self.error = Some(Error::other(format!("Invalid character '{}'", c)));
             }
