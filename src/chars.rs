@@ -35,6 +35,14 @@ pub fn is_operator(c: char) -> bool {
     }
 }
 
+pub fn is_punct(c: char) -> bool {
+    match c {
+        ',' => true,
+        ';' => true,
+        _ => false,
+    }
+}
+
 pub fn is_space(c: char) -> bool {
     match c {
         ' ' => true,

@@ -150,6 +150,25 @@ impl<Input: Read> Lexer<Input> {
         }
     }
 
+    fn process_punctuation(&mut self) {
+        let mut location = self.location.clone();
+        if let Some(c) = self.next_char() {
+            self.reset_char();
+            if let Some(ty) = match c {
+                ',' => Some(TokenTy::Comma),
+                ';' => Some(TokenTy::Semi),
+                _ => {
+                    self.error = Some(Error::other(format!("Invalid punctuation '{}'", c)));
+                    None
+                }
+            } {
+                self.next_char();
+                location.end_to_next(&self.location);
+                self.token = Some(token::build_token(ty, location));
+            }
+        }
+    }
+
     fn process(&mut self) {
         while let Some(c) = self.next_char()
             && chars::is_space(c)
@@ -166,6 +185,8 @@ impl<Input: Read> Lexer<Input> {
                 self.process_reserved_identifier();
             } else if chars::is_operator(c) {
                 self.process_operator()
+            } else if chars::is_punct(c) {
+                self.process_punctuation();
             } else {
                 self.error = Some(Error::other(format!("Invalid character '{}'", c)));
             }
