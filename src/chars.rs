@@ -24,6 +24,17 @@ pub fn is_lower(c: char) -> bool {
     }
 }
 
+pub fn is_operator(c: char) -> bool {
+    match c {
+        '+' => true,
+        '-' => true,
+        '*' => true,
+        '/' => true,
+        '^' => true,
+        _ => false,
+    }
+}
+
 pub fn is_space(c: char) -> bool {
     match c {
         ' ' => true,

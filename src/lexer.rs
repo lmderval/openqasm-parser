@@ -121,6 +121,35 @@ impl<Input: Read> Lexer<Input> {
         }
     }
 
+    fn process_operator(&mut self) {
+        let mut location = self.location.clone();
+        if let Some(c) = self.next_char() {
+            self.reset_char();
+            if let Some(ty) = match c {
+                '+' => Some(TokenTy::Plus),
+                '-' => match self.next_char() {
+                    Some('>') => {
+                        self.reset_char();
+                        Some(TokenTy::Arrow)
+                    }
+                    Some(_) => Some(TokenTy::Minus),
+                    None => None,
+                },
+                '*' => Some(TokenTy::Mul),
+                '/' => Some(TokenTy::Div),
+                '^' => Some(TokenTy::Pow),
+                _ => {
+                    self.error = Some(Error::other(format!("Invalid operator '{}'", c)));
+                    None
+                }
+            } {
+                self.next_char();
+                location.end_to_next(&self.location);
+                self.token = Some(token::build_token(ty, location));
+            }
+        }
+    }
+
     fn process(&mut self) {
         while let Some(c) = self.next_char()
             && chars::is_space(c)
@@ -135,6 +164,8 @@ impl<Input: Read> Lexer<Input> {
                 self.process_identifier();
             } else if chars::is_upper(c) {
                 self.process_reserved_identifier();
+            } else if chars::is_operator(c) {
+                self.process_operator()
             } else {
                 self.error = Some(Error::other(format!("Invalid character '{}'", c)));
             }
