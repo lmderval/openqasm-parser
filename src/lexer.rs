@@ -1,3 +1,5 @@
+use regex::Regex;
+
 use std::io::Error;
 use std::io::Read;
 
@@ -121,6 +123,70 @@ impl<Input: Read> Lexer<Input> {
         }
     }
 
+    fn process_number(&mut self) {
+        let mut location = self.location.clone();
+        let mut number = String::from("");
+        while let Some(c) = self.next_char()
+            && chars::is_number(c)
+        {
+            number += &c.to_string();
+            self.reset_char();
+        }
+        if self.error.is_some() {
+            return;
+        }
+        if let Some(c) = self.next_char()
+            && (c == 'e' || c == 'E')
+        {
+            number += &c.to_string();
+            self.reset_char();
+            if let Some(c) = self.next_char()
+                && (c == '+' || c == '-')
+            {
+                number += &c.to_string();
+                self.reset_char();
+            }
+            if self.error.is_some() {
+                return;
+            }
+            while let Some(c) = self.next_char()
+                && chars::is_digit(c)
+            {
+                number += &c.to_string();
+                self.reset_char();
+            }
+            if self.error.is_some() {
+                return;
+            }
+        }
+        let integer_re = Regex::new(r"^([1-9]+[0-9]*|0)$").unwrap();
+        let real_re = Regex::new(r"^([0-9]+\.[0-9]*|[0-9]*\.[0-9]+)([eE][-+]?[0-9]+)?$").unwrap();
+        if let Some(ty) = if integer_re.is_match(number.as_str()) {
+            match number.parse::<u32>() {
+                Ok(n) => Some(TokenTy::Integer(n)),
+                Err(err) => {
+                    self.error = Some(Error::other(err.to_string()));
+                    None
+                }
+            }
+        } else if real_re.is_match(number.as_str()) {
+            match number.parse::<f32>() {
+                Ok(n) => Some(TokenTy::Real(n)),
+                Err(err) => {
+                    self.error = Some(Error::other(err.to_string()));
+                    None
+                }
+            }
+        } else {
+            self.error = Some(Error::other(format!("Invalid number '{}'", number)));
+            None
+        } {
+            self.next_char();
+            location.end_to_next(&self.location);
+            self.token = Some(token::build_token(ty, location));
+        }
+    }
+
     fn process_operator(&mut self) {
         let mut location = self.location.clone();
         if let Some(c) = self.next_char() {
@@ -204,6 +270,8 @@ impl<Input: Read> Lexer<Input> {
                 self.process_identifier();
             } else if chars::is_upper(c) {
                 self.process_reserved_identifier();
+            } else if chars::is_number(c) {
+                self.process_number();
             } else if chars::is_operator(c) {
                 self.process_operator()
             } else if chars::is_punct(c) {

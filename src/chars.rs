@@ -34,6 +34,10 @@ pub fn is_lower(c: char) -> bool {
     }
 }
 
+pub fn is_number(c: char) -> bool {
+    is_digit(c) || c == '.'
+}
+
 pub fn is_operator(c: char) -> bool {
     match c {
         '+' => true,
