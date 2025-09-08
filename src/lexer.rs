@@ -169,6 +169,27 @@ impl<Input: Read> Lexer<Input> {
         }
     }
 
+    fn process_bracket(&mut self) {
+        let mut location = self.location.clone();
+        if let Some(c) = self.next_char() {
+            self.reset_char();
+            if let Some(ty) = match c {
+                '[' => Some(TokenTy::LBrack),
+                ']' => Some(TokenTy::RBrack),
+                '(' => Some(TokenTy::LPar),
+                ')' => Some(TokenTy::RPar),
+                _ => {
+                    self.error = Some(Error::other(format!("Invalid bracket '{}'", c)));
+                    None
+                }
+            } {
+                self.next_char();
+                location.end_to_next(&self.location);
+                self.token = Some(token::build_token(ty, location));
+            }
+        }
+    }
+
     fn process(&mut self) {
         while let Some(c) = self.next_char()
             && chars::is_space(c)
@@ -187,6 +208,8 @@ impl<Input: Read> Lexer<Input> {
                 self.process_operator()
             } else if chars::is_punct(c) {
                 self.process_punctuation();
+            } else if chars::is_bracket(c) {
+                self.process_bracket();
             } else {
                 self.error = Some(Error::other(format!("Invalid character '{}'", c)));
             }

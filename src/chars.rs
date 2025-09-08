@@ -6,6 +6,16 @@ pub fn is_alpha(c: char) -> bool {
     is_upper(c) || is_lower(c)
 }
 
+pub fn is_bracket(c: char) -> bool {
+    match c {
+        '[' => true,
+        ']' => true,
+        '(' => true,
+        ')' => true,
+        _ => false,
+    }
+}
+
 pub fn is_digit(c: char) -> bool {
     match c {
         '0'..'9' => true,
