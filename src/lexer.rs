@@ -1,10 +1,14 @@
 use std::io::Error;
 use std::io::Read;
 
+use crate::chars;
+
 use crate::location;
 use crate::location::Location;
 
+use crate::token;
 use crate::token::Token;
+use crate::token::TokenTy;
 
 pub struct Lexer<Input: Read> {
     file: String,
@@ -59,6 +63,68 @@ impl<Input: Read> Lexer<Input> {
                 None
             }
         }
+    }
+
+    fn process_identifier(&mut self) {
+        let mut location = self.location.clone();
+        let mut id = String::from("");
+        while let Some(c) = self.next_char()
+            && chars::is_id(c)
+        {
+            id += &c.to_string();
+            self.reset_char();
+        }
+        if self.error.is_some() {
+            return;
+        }
+        let ty = match id.as_str() {
+            "creg" => TokenTy::CReg,
+            "qreg" => TokenTy::QReg,
+            "measure" => TokenTy::Measure,
+            "reset" => TokenTy::Reset,
+            "pi" => TokenTy::Pi,
+            "sin" => TokenTy::Sin,
+            "cos" => TokenTy::Cos,
+            "tan" => TokenTy::Tan,
+            "exp" => TokenTy::Exp,
+            "ln" => TokenTy::Ln,
+            "sqrt" => TokenTy::Sqrt,
+            _ => TokenTy::Id(id),
+        };
+        location.end_to_next(&self.location);
+        self.token = Some(token::build_token(ty, location));
+    }
+
+    fn process(&mut self) {
+        while let Some(c) = self.next_char()
+            && chars::is_space(c)
+        {
+            self.reset_char();
+        }
+        if self.error.is_some() {
+            return;
+        }
+        if let Some(c) = self.next_char() {
+            if chars::is_lower(c) {
+                self.process_identifier();
+            } else {
+                self.error = Some(Error::other(format!("Invalid character '{}'", c)));
+            }
+        } else {
+            self.token = Some(token::build_token(TokenTy::Eof, self.location.clone()));
+        }
+    }
+
+    pub fn peek(&mut self) -> &Option<Token> {
+        if self.token.is_some() {
+            return &self.token;
+        }
+        self.process();
+        &self.token
+    }
+
+    pub fn drop(&mut self) {
+        self.token = None;
     }
 
     pub fn dump_chars(&mut self) {
