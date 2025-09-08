@@ -18,7 +18,7 @@ pub fn is_bracket(c: char) -> bool {
 
 pub fn is_digit(c: char) -> bool {
     match c {
-        '0'..'9' => true,
+        '0'..='9' => true,
         _ => false,
     }
 }
@@ -29,7 +29,7 @@ pub fn is_id(c: char) -> bool {
 
 pub fn is_lower(c: char) -> bool {
     match c {
-        'a'..'z' => true,
+        'a'..='z' => true,
         _ => false,
     }
 }
@@ -64,7 +64,7 @@ pub fn is_space(c: char) -> bool {
 
 pub fn is_upper(c: char) -> bool {
     match c {
-        'A'..'Z' => true,
+        'A'..='Z' => true,
         _ => false,
     }
 }
