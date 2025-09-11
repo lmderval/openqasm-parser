@@ -1,3 +1,4 @@
+use crate::ast::pretty_printer::PrettyPrinter;
 use crate::ast::{factory, node};
 
 pub mod ast;
@@ -48,4 +49,5 @@ fn main() {
             factory::make_simple_reg(loc.clone(), String::from("cr1")),
         ),
     ];
+    PrettyPrinter.pretty_print(program);
 }
