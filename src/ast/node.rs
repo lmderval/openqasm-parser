@@ -19,6 +19,15 @@ impl ToString for RegTy {
     }
 }
 
+impl Clone for RegTy {
+    fn clone(&self) -> Self {
+        match self {
+            Self::QReg => Self::QReg,
+            Self::CReg => Self::CReg,
+        }
+    }
+}
+
 pub enum Dec {
     RegDec {
         loc: Location,
