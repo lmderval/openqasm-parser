@@ -8,6 +8,7 @@ pub fn make_reg_dec(loc: Location, name: String, ty: node::RegTy, size: u32) -> 
         name: name,
         ty: ty,
         size: size,
+        dec: None,
     })
 }
 
@@ -15,6 +16,7 @@ pub fn make_simple_reg(loc: Location, name: String) -> node::Reg {
     node::Reg::SimpleReg {
         loc: loc,
         name: name,
+        dec: None,
     }
 }
 
@@ -23,6 +25,7 @@ pub fn make_subscript_reg(loc: Location, name: String, index: u32) -> node::Reg 
         loc: loc,
         name: name,
         index: index,
+        dec: None,
     }
 }
 
@@ -37,6 +40,7 @@ pub fn make_gate_stmt(
         gate: gate,
         pars: pars,
         args: args,
+        dec: None,
     }
 }
 

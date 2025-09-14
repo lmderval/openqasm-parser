@@ -13,17 +13,23 @@ impl Visitor for PrettyPrinter {
                 ref name,
                 ref ty,
                 size,
+                dec: _,
             } => println!("{} {}[{}];", ty.to_string(), name, size),
         }
     }
 
     fn visit_reg(&mut self, e: &node::Reg) {
         match e {
-            &node::Reg::SimpleReg { loc: _, ref name } => print!("{}", name),
+            &node::Reg::SimpleReg {
+                loc: _,
+                ref name,
+                dec: _,
+            } => print!("{}", name),
             &node::Reg::SubscriptReg {
                 loc: _,
                 ref name,
                 index,
+                dec: _,
             } => print!("{}[{}]", name, index),
         }
     }
@@ -36,6 +42,7 @@ impl Visitor for PrettyPrinter {
                 ref gate,
                 ref pars,
                 ref args,
+                dec: _,
             } => {
                 print!("{} ", gate);
                 if !pars.is_empty() {

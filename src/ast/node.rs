@@ -1,3 +1,8 @@
+use std::rc::Rc;
+
+use crate::bind::gate;
+use crate::bind::reg;
+
 use crate::utils::location::Location;
 
 pub enum RegTy {
@@ -20,6 +25,7 @@ pub enum Dec {
         name: String,
         ty: RegTy,
         size: u32,
+        dec: Option<Rc<reg::RegDec>>,
     },
 }
 
@@ -31,6 +37,7 @@ impl Dec {
                 name: _,
                 ty: _,
                 size: _,
+                dec: _,
             } => &loc,
         }
     }
@@ -40,22 +47,29 @@ pub enum Reg {
     SimpleReg {
         loc: Location,
         name: String,
+        dec: Option<Rc<reg::RegDec>>,
     },
     SubscriptReg {
         loc: Location,
         name: String,
         index: u32,
+        dec: Option<Rc<reg::RegDec>>,
     },
 }
 
 impl Reg {
     pub fn get_loc(&self) -> &Location {
         match self {
-            Reg::SimpleReg { loc, name: _ } => &loc,
+            Reg::SimpleReg {
+                loc,
+                name: _,
+                dec: _,
+            } => &loc,
             Reg::SubscriptReg {
                 loc,
                 name: _,
                 index: _,
+                dec: _,
             } => &loc,
         }
     }
@@ -68,6 +82,7 @@ pub enum Stmt {
         gate: String,
         pars: Vec<Exp>,
         args: Vec<Reg>,
+        dec: Option<Rc<gate::GateDec>>,
     },
     MeasureStmt {
         loc: Location,
@@ -89,6 +104,7 @@ impl Stmt {
                 gate: _,
                 pars: _,
                 args: _,
+                dec: _,
             } => &loc,
             Stmt::MeasureStmt {
                 loc,
