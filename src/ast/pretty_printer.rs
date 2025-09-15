@@ -13,8 +13,20 @@ impl Visitor for PrettyPrinter {
                 ref name,
                 ref ty,
                 size,
-                dec: _,
-            } => println!("{} {}[{}];", ty.to_string(), name, size),
+                ref dec,
+            } => {
+                if let Some(dec) = dec {
+                    println!(
+                        "{} {} /* {} */ [{}];",
+                        ty.to_string(),
+                        name,
+                        dec.to_string(),
+                        size
+                    )
+                } else {
+                    println!("{} {}[{}];", ty.to_string(), name, size)
+                }
+            }
         }
     }
 
@@ -23,14 +35,26 @@ impl Visitor for PrettyPrinter {
             &node::Reg::SimpleReg {
                 loc: _,
                 ref name,
-                dec: _,
-            } => print!("{}", name),
+                ref dec,
+            } => {
+                if let Some(dec) = dec {
+                    print!("{} /* {} */", name, dec.to_string())
+                } else {
+                    print!("{}", name)
+                }
+            }
             &node::Reg::SubscriptReg {
                 loc: _,
                 ref name,
                 index,
-                dec: _,
-            } => print!("{}[{}]", name, index),
+                ref dec,
+            } => {
+                if let Some(dec) = dec {
+                    print!("{} /* {} */ [{}]", name, dec.to_string(), index)
+                } else {
+                    print!("{}[{}]", name, index)
+                }
+            }
         }
     }
 
@@ -42,9 +66,12 @@ impl Visitor for PrettyPrinter {
                 ref gate,
                 ref pars,
                 ref args,
-                dec: _,
+                ref dec,
             } => {
                 print!("{} ", gate);
+                if let Some(dec) = dec {
+                    print!("/* {} */ ", dec.to_string());
+                }
                 if !pars.is_empty() {
                     print!("(");
                     self.visit_exp(&pars[0]);
