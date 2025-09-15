@@ -61,6 +61,36 @@ impl<Input: Read> Lexer<Input> {
         }
     }
 
+    fn handle_line_comment(&mut self) {
+        loop {
+            match self.next_char() {
+                Some('\n') | None => break,
+                _ => self.reset_char(),
+            }
+        }
+        self.reset_char();
+    }
+
+    fn handle_block_comment(&mut self) {
+        loop {
+            match self.next_char() {
+                Some('*') => {
+                    self.reset_char();
+                    match self.next_char() {
+                        Some('/') => break,
+                        _ => continue,
+                    }
+                }
+                None => {
+                    self.error = Some(Error::other("Unterminated comment"));
+                    return;
+                }
+                _ => self.reset_char(),
+            }
+        }
+        self.reset_char();
+    }
+
     fn process_identifier(&mut self) {
         let mut location = self.location.clone();
         let mut id = String::from("");
@@ -196,7 +226,20 @@ impl<Input: Read> Lexer<Input> {
                     None => None,
                 },
                 '*' => Some(TokenTy::Mul),
-                '/' => Some(TokenTy::Div),
+                '/' => match self.next_char() {
+                    Some('/') => {
+                        self.reset_char();
+                        self.handle_line_comment();
+                        return self.process();
+                    }
+                    Some('*') => {
+                        self.reset_char();
+                        self.handle_block_comment();
+                        return self.process();
+                    }
+                    Some(_) => Some(TokenTy::Div),
+                    None => None,
+                },
                 '^' => Some(TokenTy::Pow),
                 _ => {
                     self.error = Some(Error::other(format!("Invalid operator '{}'", c)));
