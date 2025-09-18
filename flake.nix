@@ -14,35 +14,21 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        localLib = import ./localLib { inherit pkgs; };
+        project = import ./. { inherit pkgs localLib; };
       in
       {
-        packages = {
-          openqasm-parser = pkgs.rustPlatform.buildRustPackage {
-            pname = "openqasm-parser";
-            version = "0.1.0";
-            src = self;
-
-            cargoLock.lockFile = ./Cargo.lock;
+        packages =
+          project.packages //
+          {
+            default = project.packages.openqasm-parser;
           };
 
-          default = self.packages.${system}.openqasm-parser;
-        };
-
-        devShells = {
-          openqasm-parser = pkgs.mkShell {
-            inputsFrom = [
-              self.packages.${system}.openqasm-parser
-            ];
-
-            buildInputs = with pkgs; [
-              rust-analyzer
-              rustfmt
-              clippy
-            ];
+        devShells =
+          project.devShells //
+          {
+            default = project.devShells.openqasm-parser;
           };
-
-          default = self.devShells.${system}.openqasm-parser;
-        };
 
         formatter = pkgs.nixpkgs-fmt;
       }
