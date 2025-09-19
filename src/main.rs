@@ -27,14 +27,11 @@ fn main() {
 
     let mut error = CompoundError::new();
     error.consume(parser.get_error_mut());
+    error.consume(binder.get_error_mut());
 
     if !error.empty() {
         eprintln!("{}", error.get_desc());
     }
-    binder
-        .get_error()
-        .iter()
-        .for_each(|it| println!("{}", it.to_string()));
 
     process::exit(error.get_exit_code());
 }
