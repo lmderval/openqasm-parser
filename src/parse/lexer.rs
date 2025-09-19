@@ -1,9 +1,9 @@
 use regex::Regex;
 
-use std::io::Error;
 use std::io::Read;
 
 use crate::utils::chars;
+use crate::utils::error::{CompoundError, ErrorTy, LocatedError, SimpleError};
 use crate::utils::location::Location;
 
 use crate::parse::token::{Token, TokenTy};
@@ -13,7 +13,7 @@ pub struct Lexer<Input: Read> {
     current: Option<char>,
     location: Location,
     token: Option<Token>,
-    error: Option<Error>,
+    error: CompoundError,
 }
 
 impl<Input: Read> Lexer<Input> {
@@ -23,7 +23,7 @@ impl<Input: Read> Lexer<Input> {
             current: None,
             location: Location::new(file, 0, 0, 0, 0),
             token: None,
-            error: None,
+            error: CompoundError::new(),
         }
     }
 
@@ -51,11 +51,14 @@ impl<Input: Read> Lexer<Input> {
                 self.current
             }
             Ok(2..) => {
-                self.error = Some(Error::other("Read an unexpected number of characters"));
+                self.error.add(SimpleError::new(
+                    ErrorTy::Internal,
+                    "read an unexpected number of characters",
+                ));
                 None
             }
             Err(err) => {
-                self.error = Some(err);
+                self.error.add(SimpleError::new(ErrorTy::Internal, err));
                 None
             }
         }
@@ -82,7 +85,8 @@ impl<Input: Read> Lexer<Input> {
                     }
                 }
                 None => {
-                    self.error = Some(Error::other("Unterminated comment"));
+                    self.error
+                        .add(SimpleError::new(ErrorTy::Lex, "unterminated comment"));
                     return;
                 }
                 _ => self.reset_char(),
@@ -100,7 +104,7 @@ impl<Input: Read> Lexer<Input> {
             id += &c.to_string();
             self.reset_char();
         }
-        if self.error.is_some() {
+        if !self.error.empty() {
             return;
         }
         let ty = match id.as_str() {
@@ -130,7 +134,7 @@ impl<Input: Read> Lexer<Input> {
             id += &c.to_string();
             self.reset_char();
         }
-        if self.error.is_some() {
+        if !self.error.empty() {
             return;
         }
         if let Some(ty) = match id.as_str() {
@@ -138,7 +142,10 @@ impl<Input: Read> Lexer<Input> {
             "U" => Some(TokenTy::UGate),
             "CX" => Some(TokenTy::CXGate),
             _ => {
-                self.error = Some(Error::other(format!("Invalid identifier '{}'", id)));
+                self.error.add(SimpleError::new(
+                    ErrorTy::Lex,
+                    format!("invalid identifier '{}'", id),
+                ));
                 None
             }
         } {
@@ -156,7 +163,7 @@ impl<Input: Read> Lexer<Input> {
             number += &c.to_string();
             self.reset_char();
         }
-        if self.error.is_some() {
+        if !self.error.empty() {
             return;
         }
         if let Some(c) = self.next_char()
@@ -170,7 +177,7 @@ impl<Input: Read> Lexer<Input> {
                 number += &c.to_string();
                 self.reset_char();
             }
-            if self.error.is_some() {
+            if !self.error.empty() {
                 return;
             }
             while let Some(c) = self.next_char()
@@ -179,7 +186,7 @@ impl<Input: Read> Lexer<Input> {
                 number += &c.to_string();
                 self.reset_char();
             }
-            if self.error.is_some() {
+            if !self.error.empty() {
                 return;
             }
         }
@@ -189,7 +196,7 @@ impl<Input: Read> Lexer<Input> {
             match number.parse::<u32>() {
                 Ok(n) => Some(TokenTy::Integer(n)),
                 Err(err) => {
-                    self.error = Some(Error::other(err.to_string()));
+                    self.error.add(SimpleError::new(ErrorTy::Lex, err));
                     None
                 }
             }
@@ -197,12 +204,15 @@ impl<Input: Read> Lexer<Input> {
             match number.parse::<f32>() {
                 Ok(n) => Some(TokenTy::Real(n)),
                 Err(err) => {
-                    self.error = Some(Error::other(err.to_string()));
+                    self.error.add(SimpleError::new(ErrorTy::Lex, err));
                     None
                 }
             }
         } else {
-            self.error = Some(Error::other(format!("Invalid number '{}'", number)));
+            self.error.add(SimpleError::new(
+                ErrorTy::Lex,
+                format!("invalid number '{}'", number),
+            ));
             None
         } {
             self.next_char();
@@ -242,7 +252,10 @@ impl<Input: Read> Lexer<Input> {
                 },
                 '^' => Some(TokenTy::Pow),
                 _ => {
-                    self.error = Some(Error::other(format!("Invalid operator '{}'", c)));
+                    self.error.add(SimpleError::new(
+                        ErrorTy::Internal,
+                        format!("invalid operator '{}'", c),
+                    ));
                     None
                 }
             } {
@@ -261,7 +274,10 @@ impl<Input: Read> Lexer<Input> {
                 ',' => Some(TokenTy::Comma),
                 ';' => Some(TokenTy::Semi),
                 _ => {
-                    self.error = Some(Error::other(format!("Invalid punctuation '{}'", c)));
+                    self.error.add(SimpleError::new(
+                        ErrorTy::Internal,
+                        format!("invalid punctuation '{}'", c),
+                    ));
                     None
                 }
             } {
@@ -282,7 +298,10 @@ impl<Input: Read> Lexer<Input> {
                 '(' => Some(TokenTy::LPar),
                 ')' => Some(TokenTy::RPar),
                 _ => {
-                    self.error = Some(Error::other(format!("Invalid bracket '{}'", c)));
+                    self.error.add(SimpleError::new(
+                        ErrorTy::Internal,
+                        format!("invalid bracket '{}'", c),
+                    ));
                     None
                 }
             } {
@@ -299,7 +318,7 @@ impl<Input: Read> Lexer<Input> {
         {
             self.reset_char();
         }
-        if self.error.is_some() {
+        if !self.error.empty() {
             return;
         }
         if let Some(c) = self.next_char() {
@@ -316,7 +335,11 @@ impl<Input: Read> Lexer<Input> {
             } else if chars::is_bracket(c) {
                 self.process_bracket();
             } else {
-                self.error = Some(Error::other(format!("Invalid character '{}'", c)));
+                self.error.add(LocatedError::new(
+                    ErrorTy::Lex,
+                    format!("invalid character '{}'", c),
+                    self.location.clone(),
+                ));
             }
         } else {
             self.token = Some(Token::new(TokenTy::Eof, self.location.clone()));
@@ -343,7 +366,11 @@ impl<Input: Read> Lexer<Input> {
         println!("eof@{}", self.location.to_string());
     }
 
-    pub fn get_error(&self) -> &Option<Error> {
+    pub fn get_error(&self) -> &CompoundError {
         &self.error
+    }
+
+    pub fn get_error_mut(&mut self) -> &mut CompoundError {
+        &mut self.error
     }
 }
