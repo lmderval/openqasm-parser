@@ -1,4 +1,3 @@
-use std::io::Error;
 use std::io::Read;
 
 use std::vec::Vec;
@@ -7,10 +6,11 @@ use crate::ast::{factory, node};
 
 use crate::parse::lexer::Lexer;
 use crate::parse::token::TokenTy;
+use crate::utils::error::{CompoundError, ErrorTy, LocatedError};
 
 pub struct Parser<Input: Read> {
     lexer: Lexer<Input>,
-    error: Option<Error>,
+    error: CompoundError,
 }
 
 macro_rules! is_token {
@@ -23,15 +23,26 @@ macro_rules! is_token {
 }
 
 macro_rules! peek_token {
+    ($parser:expr) => {
+        match $parser.lexer.peek().as_ref()
+        {
+            Some(it) => Some(it),
+            _ => {
+                $parser.error.consume($parser.lexer.get_error_mut());
+                return None;
+            }
+        }
+    };
+
     ($parser:expr; in [$($tys:pat),+]) => {{
-        let token = $parser.lexer.peek().as_ref()?;
+        let token = peek_token!($parser)?;
         match token.get_ty() {
             $($tys)|+ => Some(token),
             _ => {
-                $parser.error = Some(Error::other(format!(
-                    "Unexpected token {}",
-                    token.to_string()
-                )));
+                $parser.error.add(LocatedError::new(ErrorTy::Parse, format!(
+                    "unexpected token {}",
+                    token.get_ty().to_string()
+                ), token.get_loc().clone()));
                 None
             }
         }
@@ -42,7 +53,7 @@ impl<Input: Read> Parser<Input> {
     pub fn new(lexer: Lexer<Input>) -> Parser<Input> {
         Parser {
             lexer: lexer,
-            error: None,
+            error: CompoundError::new(),
         }
     }
 
@@ -63,7 +74,7 @@ impl<Input: Read> Parser<Input> {
         let mut program: Vec<node::Stmt> = Vec::new();
         loop {
             program.push(self.parse_statement()?);
-            if is_token!(self.lexer.peek().as_ref()?; in [TokenTy::Eof]) {
+            if is_token!(peek_token!(self)?; in [TokenTy::Eof]) {
                 return Some(program);
             }
         }
@@ -236,7 +247,7 @@ impl<Input: Read> Parser<Input> {
         };
         self.lexer.drop();
 
-        if !is_token!(self.lexer.peek().as_ref()?; in [TokenTy::LBrack]) {
+        if !is_token!(peek_token!(self)?; in [TokenTy::LBrack]) {
             return Some(factory::make_simple_reg(loc, name));
         }
         self.lexer.drop();
@@ -258,7 +269,7 @@ impl<Input: Read> Parser<Input> {
         let mut exps: Vec<node::Exp> = Vec::new();
         loop {
             exps.push(self.parse_exp()?);
-            if !is_token!(self.lexer.peek().as_ref()?; in [TokenTy::Comma]) {
+            if !is_token!(peek_token!(self)?; in [TokenTy::Comma]) {
                 return Some(exps);
             }
             self.lexer.drop();
@@ -386,7 +397,7 @@ impl<Input: Read> Parser<Input> {
         let left = self.parse_term_exp()?;
         let mut loc = left.get_loc().clone();
 
-        if !is_token!(self.lexer.peek().as_ref()?; in [TokenTy::Pow]) {
+        if !is_token!(peek_token!(self)?; in [TokenTy::Pow]) {
             return Some(left);
         }
         self.lexer.drop();
@@ -406,7 +417,7 @@ impl<Input: Read> Parser<Input> {
         let mut left = self.parse_exponential_exp()?;
         let mut loc = left.get_loc().clone();
         loop {
-            let op = match self.lexer.peek().as_ref()?.get_ty() {
+            let op = match peek_token!(self)?.get_ty() {
                 TokenTy::Mul => node::BinopTy::Mul,
                 TokenTy::Div => node::BinopTy::Div,
                 _ => break,
@@ -425,7 +436,7 @@ impl<Input: Read> Parser<Input> {
         let mut left = self.parse_multiplicative_exp()?;
         let mut loc = left.get_loc().clone();
         loop {
-            let op = match self.lexer.peek().as_ref()?.get_ty() {
+            let op = match peek_token!(self)?.get_ty() {
                 TokenTy::Plus => node::BinopTy::Add,
                 TokenTy::Minus => node::BinopTy::Sub,
                 _ => break,
@@ -444,12 +455,11 @@ impl<Input: Read> Parser<Input> {
         self.parse_additive_exp()
     }
 
-    pub fn get_error(&self) -> &Option<Error> {
-        let err = self.lexer.get_error();
-        if err.is_some() {
-            err
-        } else {
-            &self.error
-        }
+    pub fn get_error(&self) -> &CompoundError {
+        &self.error
+    }
+
+    pub fn get_error_mut(&mut self) -> &mut CompoundError {
+        &mut self.error
     }
 }
