@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-use std::io::Error;
 use std::rc::Rc;
 use std::vec::Vec;
 
@@ -11,24 +10,30 @@ use crate::bind::gate::GateDec;
 use crate::bind::par::ParDec;
 use crate::bind::reg::RegDec;
 
+use crate::utils::error::{CompoundError, ErrorTy, LocatedError};
+
 pub struct Binder {
     gates: HashMap<String, Rc<GateDec>>,
     regs: HashMap<String, Rc<RegDec>>,
-    error: Option<Error>,
+    error: CompoundError,
 }
 
 impl MutVisitor for Binder {
     fn visit_dec(&mut self, e: &mut node::Dec) {
         match e {
             node::Dec::RegDec {
-                loc: _,
+                loc,
                 name,
                 ty,
                 size,
                 dec,
             } => {
                 if self.regs.contains_key(name) {
-                    self.error = Some(Error::other(format!("Redefined register '{}'", name)));
+                    self.error.add(LocatedError::new(
+                        ErrorTy::Bind,
+                        format!("redefined register '{}'", name),
+                        loc.clone(),
+                    ));
                     return;
                 }
                 let it = Rc::new(RegDec::new(name.clone(), ty.clone(), *size));
@@ -40,18 +45,26 @@ impl MutVisitor for Binder {
 
     fn visit_reg(&mut self, e: &mut node::Reg) {
         match e {
-            node::Reg::SimpleReg { loc: _, name, dec } => match self.regs.get(name) {
+            node::Reg::SimpleReg { loc, name, dec } => match self.regs.get(name) {
                 Some(it) => drop(dec.replace(Rc::clone(it))),
-                _ => self.error = Some(Error::other(format!("Undeclared register '{}'", name))),
+                _ => self.error.add(LocatedError::new(
+                    ErrorTy::Bind,
+                    format!("undeclared register '{}'", name),
+                    loc.clone(),
+                )),
             },
             node::Reg::SubscriptReg {
-                loc: _,
+                loc,
                 name,
                 index: _,
                 dec,
             } => match self.regs.get(name) {
                 Some(it) => drop(dec.replace(Rc::clone(it))),
-                _ => self.error = Some(Error::other(format!("Undeclared register '{}'", name))),
+                _ => self.error.add(LocatedError::new(
+                    ErrorTy::Bind,
+                    format!("undeclared register '{}'", name),
+                    loc.clone(),
+                )),
             },
         }
     }
@@ -60,7 +73,7 @@ impl MutVisitor for Binder {
         match e {
             node::Stmt::DecStmt(dec) => self.visit_dec(dec),
             node::Stmt::GateStmt {
-                loc: _,
+                loc,
                 gate,
                 pars: _,
                 args,
@@ -68,7 +81,11 @@ impl MutVisitor for Binder {
             } => {
                 match self.gates.get(gate) {
                     Some(it) => drop(dec.replace(Rc::clone(it))),
-                    _ => self.error = Some(Error::other(format!("Undeclared gate '{}'", gate))),
+                    _ => self.error.add(LocatedError::new(
+                        ErrorTy::Bind,
+                        format!("undeclared gate '{}'", gate),
+                        loc.clone(),
+                    )),
                 };
                 args.iter_mut().for_each(|arg| self.visit_reg(arg));
             }
@@ -110,7 +127,7 @@ impl Binder {
         Binder {
             gates: gates,
             regs: HashMap::new(),
-            error: None,
+            error: CompoundError::new(),
         }
     }
 
@@ -118,7 +135,11 @@ impl Binder {
         program.iter_mut().for_each(|x| self.visit_stmt(x));
     }
 
-    pub fn get_error(&self) -> &Option<Error> {
+    pub fn get_error(&self) -> &CompoundError {
         &self.error
+    }
+
+    pub fn get_error_mut(&mut self) -> &mut CompoundError {
+        &mut self.error
     }
 }
