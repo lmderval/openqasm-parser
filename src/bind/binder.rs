@@ -109,14 +109,14 @@ impl Binder {
                 Rc::new(ParDec::new(String::from("phi"))),
                 Rc::new(ParDec::new(String::from("lambda"))),
             ],
-            vec![Rc::new(RegDec::new(String::from("qubit"), RegTy::QReg, 1))],
+            vec![Rc::new(RegDec::new_bit(String::from("qubit"), RegTy::QReg))],
         ));
         let cxgate = Rc::new(GateDec::new(
             String::from("CX"),
             vec![],
             vec![
-                Rc::new(RegDec::new(String::from("control"), RegTy::QReg, 1)),
-                Rc::new(RegDec::new(String::from("target"), RegTy::QReg, 1)),
+                Rc::new(RegDec::new_bit(String::from("control"), RegTy::QReg)),
+                Rc::new(RegDec::new_bit(String::from("target"), RegTy::QReg)),
             ],
         ));
 
