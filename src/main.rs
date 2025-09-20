@@ -1,6 +1,7 @@
 pub mod ast;
 pub mod bind;
 pub mod parse;
+pub mod typing;
 pub mod utils;
 
 use std::process;
