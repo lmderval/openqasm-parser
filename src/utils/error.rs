@@ -7,6 +7,7 @@ pub enum ErrorTy {
     Parse,
     Bind,
     Type,
+    Sanity,
 }
 
 impl Clone for ErrorTy {
@@ -18,6 +19,7 @@ impl Clone for ErrorTy {
             Self::Parse => Self::Parse,
             Self::Bind => Self::Bind,
             Self::Type => Self::Type,
+            Self::Sanity => Self::Sanity,
         }
     }
 }
@@ -31,6 +33,7 @@ impl ErrorTy {
             ErrorTy::Parse => 3,
             ErrorTy::Bind => 4,
             ErrorTy::Type => 5,
+            ErrorTy::Sanity => 6,
         }
     }
 }
